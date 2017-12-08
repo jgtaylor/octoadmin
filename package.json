@@ -1,0 +1,16 @@
+{
+	"name": "octoadmin",
+	"version": "1.0.0",
+	"description": "Admin client for the octo box",
+	"main": "express-server.js",
+	"scripts": {
+		"dev": "node express-server.js",
+		"test": "echo \"Error: no test specified\" && exit 1"
+	},
+	"author": "",
+	"license": "MIT",
+	"dependencies": {
+		"eslint": "^4.12.1",
+		"express": "^4.16.2"
+	}
+}
