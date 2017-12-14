@@ -1,0 +1,93 @@
+body {
+	font-family: sans-serif;
+}
+
+/*@font-face {
+	font-family: 'blackouttwo_am';
+	src: url('blackout_two_am-webfont.woff2') format('woff2'),
+		 url('blackout_two_am-webfont.woff') format('woff');
+	font-weight: normal;
+	font-style: normal;
+
+}*/
+/*input {
+	position: relative;
+	left: 100px;
+}*/
+@font-face {
+    font-family: 'seasideresortnfregular';
+    src: url('seasrn__-webfont.woff2') format('woff2'),
+         url('seasrn__-webfont.woff') format('woff');
+    font-weight: normal;
+    font-style: normal;
+
+}
+a,a:hover,a:active,a:visited {
+
+	text-decoration: none;
+	color: #C1DFBD;
+}
+
+.navigation {
+	font-family: 'seasideresortnfregular';
+	color: #C1DFBD;
+	background-color: #66789A;
+	padding-left: 50px;
+	padding-top: 30px;
+	padding-bottom: 10px;
+	border-style: hidden;
+	border-radius: 4px;
+	margin-bottom: 3px;
+}
+
+.btn {
+	display: block;
+	font-family: sans-serif;
+	font-style: normal;
+	font-weight: normal;
+	font-size: .9em;
+	border: 2px solid Black;
+	border-radius: 25px;
+	padding-top: .3em;
+	padding-bottom: .3em;
+	padding-left: 2em;
+	padding-right: 2em;
+}
+
+.save {
+	background-color: #C1DFBD;
+}
+.save:hover {
+	background-color: #A4D39D;
+}
+
+button.fa.fa-pencil {
+	width: 40px;
+}
+
+.device-cmds {
+	display: inline-block;
+	list-style: none;
+	padding-left: 0px;
+}
+
+.device-items {
+	font-family: sans-serif;
+
+}
+
+.device-details{
+	display: grid;
+	grid-template-columns: [linename1] 300px [linename2] 150px [linename3];
+	grid-column-gap: 10px;
+}
+
+.device {
+	border: 1px solid #419334;
+	padding-left: 30px;
+	padding-top: 15px;
+	padding-bottom: 15px;
+	border-radius: 4px;
+	font-size: .9em;
+	margin-bottom: 3px;
+}
