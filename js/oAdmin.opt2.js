@@ -26,6 +26,7 @@ class DeviceManager extends Emitter {
 		this._conn = {};
 		this.connectOptions = options;
 		this.connect( this.connectOptions );
+		this._connected = false;
 	}
 	connect( options ) {
 		let self = this;
@@ -34,11 +35,13 @@ class DeviceManager extends Emitter {
 			self.router( msg );
 		}, self );
 		self._conn.addEventListener( "close", function closeHandler() {
+			isConnected( false );
 			window.setTimeout( () => {
 				self.connect( self.connectOptions );
 			}, 2000 );
 		}, self );
 		self._conn.addEventListener( "open", function openHandler() {
+			isConnected( true );
 			self._conn.send( self.packet( "load" ) );
 		} );
 	}
@@ -63,16 +66,19 @@ class DeviceManager extends Emitter {
 		let route = msg[ 0 ],
 			payload = msg[ 1 ];
 		switch ( route ) {
+		case "lm-device-add":
 		case "device-add":
 		{
 			this.addDevice( payload );
 			break;
 		}
+		case "lm-device-remove":
 		case "device-remove":
 		{
 			this.removeDevice( payload );
 			break;
 		}
+		case "lm-device-update":
 		case "device-update":
 		{
 			this.updateDevice( payload );
@@ -87,6 +93,8 @@ class DeviceManager extends Emitter {
 		case "lm-update": // old keys
 		case "load-devices":
 		{
+			document.getElementById( "devices" )
+				.innerHTML = "";
 			payload.devices.forEach( ( d ) => {
 				this.addDevice( new Device( d ) );
 			} );
@@ -103,26 +111,36 @@ class DeviceManager extends Emitter {
 		} );
 	}
 	addDevice( device ) {
-		this._devices.push( device );
-		let _event = new CustomEvent( "device-add", {
-			detail: device
-		} );
-		this.dispatchEvent( _event );
+		if ( !this.device( device ) ) {
+			this._devices.push( device );
+			let _event = new CustomEvent( "device-add", {
+				detail: device
+			} );
+			this.dispatchEvent( _event );
+			return true;
+		}
+		console.log( `Device "${device.device}" already exists. Device IDs must be unique.` );
 	}
 	removeDevice( device ) {
-		this._device.splice( this._devices.indexOf( device ), 1 ) ? true : false;
+		let d = this._devices.find( ( el ) => {
+			if ( el.device === device ) {
+				return el;
+			}
+		} );
+		console.log( d, device );
+		this._devices.splice( this._devices.indexOf( d ), 1 ) ? true : false;
 		let _event = new CustomEvent( "device-remove", {
 			detail: device
 		} );
 		this.dispatchEvent( _event );
 	}
 	updateDevice( device, sync ) {
-		let _old = this._devices.find( ( el ) => {
-			if ( el.device === device.device ) {
-				return el;
-			}
-		} );
-		this._devices[ this._devices.indexOf( _old ) ] = device;
+		if ( !deviceManager.device( device.device ) ) {
+			console.log( `Can't update a device that doesn't exist! Device: ${device.device}` );
+			return false;
+		}
+		this.removeDevice( device.device );
+		this.addDevice( device );
 		if ( sync ) {
 			// { cmd: "device-sync", _changed: {device} }
 			this.send( this.packet( {
@@ -130,10 +148,10 @@ class DeviceManager extends Emitter {
 				_changed: device
 			} ) );
 		}
-		let _event = new CustomEvent( "device-update", {
-			detail: device
-		} );
-		this.dispatchEvent( _event );
+		// let _event = new CustomEvent( "device-update", {
+		// 	detail: device
+		// } );
+		// this.dispatchEvent( _event );
 	}
 	send( msg ) {
 		this._conn.send( ( msg ) );
@@ -160,7 +178,7 @@ function inputHandler( e ) {
 		// update the deviceName.., or whatever this input is sitting next to.
 		e.target.previousSibling.style.display = "";
 		e.target.style.display = "none";
-		e.target.previousSibling.previousSibling.innerText = e.target.value;
+		e.target.parentElement.previousSibling.firstChild.innerText = e.target.value;
 		// do the JSON.parse trick to get a copy of the device, instead of the
 		// actual device.d
 		let device = JSON.parse( JSON.stringify( deviceManager.device( e.target.dataset.device ) ) );
@@ -171,7 +189,7 @@ function inputHandler( e ) {
 		save();
 	} else if ( e.keyCode == 27 ) {
 		// clear everything out, and cancel changes.
-		e.target.value = e.target.previousSibling.previousSibling.innerText;
+		e.target.value = e.target.parentElement.previousSibling.firstChild.innerText;
 		e.target.previousSibling.style.display = "";
 		e.target.style.display = "none";
 	}
@@ -189,10 +207,13 @@ const deviceHTMLFactory = function ( device ) {
 	// div deviceID
 	let div = document.createElement( "div" ),
 		buttonDiv = document.createElement( "div" );
-	div.setAttribute( "class", "device" );
+	div.classList.add( "device" );
 	div.setAttribute( "id", device.device );
+	buttonDiv.classList.add( "btn-div" );
 	div.innerHTML =
-		`<div class="device-details"><span class="device-items" data-name="${device.deviceName}" style="font-size: 1.8em">${device.deviceName}</span><button class="fa fa-pencil" type="button" data-edit="${device.device}"></button><input placeholder="${device.DeviceName}" type="text" data-device="${device.device}" style="display: none;"></input></div>`;
+		`<div class="device-items"><span data-name="${device.deviceName}">${device.deviceName}</span></div>
+		<div><button class="fa fa-pencil" type="button" data-edit="${device.device}"></button><input type="text" data-device="${device.device}" style="display: none;"></input></div>
+		<div class="device-id">ID: ${device.device}</div>`;
 	div.querySelector( `[data-edit="${device.device}"]` )
 		.addEventListener( "click", editDetail );
 	device.validCmds.forEach( ( cmd ) => {
@@ -200,7 +221,7 @@ const deviceHTMLFactory = function ( device ) {
 		_button.setAttribute( "class", "btn" );
 		_button.setAttribute( "data-device", device.device );
 		_button.innerText = cmd;
-		_button.style.display = "inline-block";
+		// _button.style.display = "inline-block";
 		_button.addEventListener( "click", deviceButtonHandler );
 		buttonDiv.appendChild( _button );
 	} );
@@ -208,17 +229,38 @@ const deviceHTMLFactory = function ( device ) {
 	return div;
 };
 
+function isConnected( conn ) {
+	let connectIcon = document.getElementById( "websocket-connection" ),
+		icon = document.getElementById( "ws-icon" );
+	icon.classList.add( "fa" );
+	connectIcon.appendChild( icon );
+	if ( conn ) {
+		connectIcon.style.backgroundColor = "green";
+		icon.classList.remove( "fa-chain-broken" );
+		icon.classList.add( "fa-link" );
+		console.log( connectIcon );
+	} else {
+		connectIcon.style.backgroundColor = "red";
+		icon.classList.remove( "fa-link" );
+		icon.classList.add( "fa-chain-broken" );
+
+	}
+	console.log( icon.classList );
+}
 
 const deviceManager = new DeviceManager( "ws://localhost:2801/" );
+
+
 deviceManager.addEventListener( "device-add", ( msg ) => {
 	let deviceDiv = document.getElementById( "devices" );
 	deviceDiv.appendChild( deviceHTMLFactory( msg.detail ) );
 } );
 deviceManager.addEventListener( "device-remove", ( msg ) => {
-	let deviceDiv = document.getElementById( msg.detail.device );
+	console.log( msg.detail );
+	let deviceDiv = document.getElementById( msg.detail );
 	deviceDiv.remove();
 } );
-deviceManager.addEventListener( "device-update", ( msg ) => {
-	let deviceDiv = document.getElementById( msg.detail.device );
-	deviceDiv = deviceHTMLFactory( msg.detail );
-} );
+// deviceManager.addEventListener( "device-update", ( msg ) => {
+// 	let deviceDiv = document.getElementById( msg.detail.device );
+// 	deviceDiv = deviceHTMLFactory( msg.detail );
+// } );
